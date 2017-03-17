@@ -9,6 +9,7 @@ import (
         "sync"
         "time"
 	"database/sql"
+	"math/rand"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
