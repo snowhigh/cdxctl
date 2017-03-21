@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"math/rand"
 
+	lmf "github.com/snowhigh/libmacouflage"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
         "github.com/google/gopacket"
@@ -45,7 +46,7 @@ var scanDeviceCommand = &cobra.Command{
 			ipv4b bolb,
 			mac varchar(50),
 			hostname varchar(50),
-			groupname varchar(50),
+			vendor varchar(200),
 			state varchar(10),
 			last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			unique(vlan_id, ipv4, mac) on conflict replace
@@ -166,13 +167,22 @@ func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}, db *
 			if err != nil {
 				log.Fatal(err)
 			}
-			stmt, err := tx.Prepare("insert or replace into node(if_name, vlan_id, ipv4, ipv4b, mac, hostname, groupname, state) values(?,?,?,?,?,?,?,?)")
+			stmt, err := tx.Prepare("insert or replace into node(if_name, vlan_id, ipv4, ipv4b, mac, hostname, vendor, state) values(?,?,?,?,?,?,?,?)")
 			if err != nil {
 				log.Fatal(err)
 			}
 			defer stmt.Close()
-			_, err = stmt.Exec(iface.Name, 0, fmt.Sprintf("%v", net.IP(arp.SourceProtAddress)), net.IP(arp.SourceProtAddress),
-				fmt.Sprintf("%v", net.HardwareAddr(arp.SourceHwAddress)), "", "", "on")
+			mac := fmt.Sprintf("%v", net.HardwareAddr(arp.SourceHwAddress))
+			newMacVendor, err := lmf.FindVendorByMac(mac)
+			if err != nil {
+				if err == err.(lmf.NoVendorError) {
+					newMacVendor.Vendor = "Unknown"
+				}
+			}
+			// vendor := strings.Replace(newMacVendor.Vendor, "'", "''", -1)
+			vendor := newMacVendor.Vendor
+			ip := fmt.Sprintf("%v", net.IP(arp.SourceProtAddress))
+			_, err = stmt.Exec(iface.Name, 0, ip, net.IP(arp.SourceProtAddress), mac , "", vendor, "on")
 			if err != nil {
 				log.Fatal(err)
 			}
