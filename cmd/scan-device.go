@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
         "bytes"
         "encoding/binary"
         "errors"
@@ -18,14 +19,12 @@ import (
         "github.com/google/gopacket/pcap"
 )
 
-var db *sql.DB
-
 func init() {
-	RootCmd.AddCommand(scanCommand)
+	RootCmd.AddCommand(scanDeviceCommand)
 }
 
-var scanCommand = &cobra.Command{
-        Use:   "scan",
+var scanDeviceCommand = &cobra.Command{
+        Use:   "scan-device",
         Short: "scan for network devices",
         RunE: func(cmd *cobra.Command, args []string) error {
 		// Get a list of all interfaces.
@@ -34,11 +33,28 @@ var scanCommand = &cobra.Command{
 			return err
 		}
 		// Open db for read/write scan result
-		db, err = sql.Open("sqlite3", "/tmp/netdraw.db")
+		db, err := sql.Open("sqlite3", "/tmp/cdxctl.db")
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer db.Close()
+		sqlStmt := `create table if not exists node(
+			if_name varchar(50),
+			vlan_id integer default 0,
+			ipv4 varchar(50),
+			ipv4b bolb,
+			mac varchar(50),
+			hostname varchar(50),
+			groupname varchar(50),
+			state varchar(10),
+			last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			unique(vlan_id, ipv4, mac) on conflict replace
+		);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			log.Printf("%q: %s\n", err, sqlStmt)
+			return err
+		}
 
 		var wg sync.WaitGroup
 		for _, iface := range ifaces {
@@ -46,7 +62,7 @@ var scanCommand = &cobra.Command{
 			// Start up a scan on each interface.
 			go func(iface net.Interface) {
 				defer wg.Done()
-				if err := scan(&iface, &wg); err != nil {
+				if err := scan(&iface, &wg, db); err != nil {
 					log.Printf("interface %v: %v", iface.Name, err)
 				}
 			}(iface)
@@ -55,6 +71,7 @@ var scanCommand = &cobra.Command{
 		// forever, but will stop on an error, so if we get past this Wait
 		// it means all attempts to write have failed.
 		wg.Wait()
+		log.Printf("Done")
 		return nil
         },
 }
@@ -63,7 +80,7 @@ var scanCommand = &cobra.Command{
 //
 // scan loops forever, sending packets out regularly.  It returns an error if
 // it's ever unable to write a packet.
-func scan(iface *net.Interface, wg *sync.WaitGroup) error {
+func scan(iface *net.Interface, wg *sync.WaitGroup, db *sql.DB) error {
 	// We just look for IPv4 addresses, so try to find if the interface has one.
 	var addr *net.IPNet
 	if addrs, err := iface.Addrs(); err != nil {
@@ -100,7 +117,7 @@ func scan(iface *net.Interface, wg *sync.WaitGroup) error {
 
 	// Start up a goroutine to read in packet data.
 	stop := make(chan struct{})
-	go readARP(handle, iface, stop)
+	go readARP(handle, iface, stop, db)
 	defer close(stop)
 
 	// Write our scan packets out to the handle.
@@ -109,9 +126,9 @@ func scan(iface *net.Interface, wg *sync.WaitGroup) error {
 		return err
 	}
 	// We don't know exactly how long it'll take for packets to be
-	// sent back to us, but 10 seconds should be more than enough
+	// sent back to us, but 3 seconds should be more than enough
 	// time ;)
-	time.Sleep(10 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	wg.Done()
 	return nil
@@ -120,7 +137,7 @@ func scan(iface *net.Interface, wg *sync.WaitGroup) error {
 // readARP watches a handle for incoming ARP responses we might care about, and prints them.
 //
 // readARP loops until 'stop' is closed.
-func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}) {
+func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}, db *sql.DB) {
 	src := gopacket.NewPacketSource(handle, layers.LayerTypeEthernet)
 	in := src.Packets()
 
@@ -142,7 +159,24 @@ func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}) {
 			// Note:  we might get some packets here that aren't responses to ones we've sent,
 			// if for example someone else sends US an ARP request.  Doesn't much matter, though...
 			// all information is good information :)
-			log.Printf("IP %v is at %v", net.IP(arp.SourceProtAddress), net.HardwareAddr(arp.SourceHwAddress))
+			// log.Printf("IP %v is at %v", net.IP(arp.SourceProtAddress), net.HardwareAddr(arp.SourceHwAddress))
+			// fmt.Fprintf(w, "%v\t%v\t%v\tON\n", net.IP(arp.SourceProtAddress), net.IP(arp.SourceProtAddress),
+			//	net.HardwareAddr(arp.SourceHwAddress))
+			tx, err := db.Begin()
+			if err != nil {
+				log.Fatal(err)
+			}
+			stmt, err := tx.Prepare("insert or replace into node(if_name, vlan_id, ipv4, ipv4b, mac, hostname, groupname, state) values(?,?,?,?,?,?,?,?)")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer stmt.Close()
+			_, err = stmt.Exec(iface.Name, 0, fmt.Sprintf("%v", net.IP(arp.SourceProtAddress)), net.IP(arp.SourceProtAddress),
+				fmt.Sprintf("%v", net.HardwareAddr(arp.SourceHwAddress)), "", "", "on")
+			if err != nil {
+				log.Fatal(err)
+			}
+			tx.Commit()
 		}
 	}
 }
@@ -181,6 +215,7 @@ func writeARP(handle *pcap.Handle, iface *net.Interface, addr *net.IPNet) error 
 		if err := handle.WritePacketData(buf.Bytes()); err != nil {
 			return err
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 	return nil
 }

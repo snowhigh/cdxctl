@@ -1,0 +1,8 @@
+#!/bin/bash
+mkdir -p build
+cd build
+gox -osarch="darwin/amd64" ../
+# gox -osarch="linux/amd64" -osarch="darwin/amd64" ../
+
+# mv cdxctl_linux_amd64 cdxctl-Linux-x86_64
+mv cdxctl_darwin_amd64 cdxctl-Darwin-x86_64
