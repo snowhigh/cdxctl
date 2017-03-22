@@ -40,22 +40,32 @@ var listClusterCommand = &cobra.Command{
 		}
 		// Print output
 		w := tabwriter.NewWriter(os.Stdout, 5, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "IP\tHOSTNAME\tCLUSTER")
+		fmt.Fprintln(w, "CLUSTER\tNODES")
 
-		rows, err := db.Query("select ipv4, hostname, cluster from cluster order by cluster asc")
+		rows, err := db.Query("select distinct cluster from cluster")
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var ip string
-			var hostname string
 			var cluster string
-			err = rows.Scan(&ip, &hostname, &cluster)
+			var count string
+			err = rows.Scan(&cluster)
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\n", ip, hostname, cluster)
+			crows, err := db.Query(fmt.Sprintf("select count(ipv4) from cluster where cluster='%s'", cluster))
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer crows.Close()
+			if crows.Next() {
+				err = crows.Scan(&count)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+			fmt.Fprintf(w, "%s\t%s\n", cluster, count)
 		}
 		w.Flush()
 		return nil
