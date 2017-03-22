@@ -57,7 +57,7 @@ func scanCluster(db *sql.DB) {
 	results := make(chan *bonjour.ServiceEntry)
 
 	// Send the "stop browsing" signal after the desired timeout
-	timeout := time.Duration(5e9)
+	timeout := time.Duration(5 * time.Second)
 	exitCh := make(chan bool)
 	go func() {
 		time.Sleep(timeout)
@@ -96,7 +96,6 @@ func scanCluster(db *sql.DB) {
 				log.Fatal(err)
 			}
 			tx.Commit()
-			time.Sleep(1e8)
 		case <-exitCh:
 			return
 		}

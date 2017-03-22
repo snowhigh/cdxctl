@@ -57,13 +57,14 @@ var scanDeviceCommand = &cobra.Command{
 			return err
 		}
 
+		var mutex = &sync.Mutex{}
 		var wg sync.WaitGroup
 		for _, iface := range ifaces {
 			wg.Add(1)
 			// Start up a scan on each interface.
 			go func(iface net.Interface) {
 				defer wg.Done()
-				if err := scan(&iface, &wg, db); err != nil {
+				if err := scan(&iface, &wg, db, mutex); err != nil {
 					log.Printf("interface %v: %v", iface.Name, err)
 				}
 			}(iface)
@@ -81,7 +82,7 @@ var scanDeviceCommand = &cobra.Command{
 //
 // scan loops forever, sending packets out regularly.  It returns an error if
 // it's ever unable to write a packet.
-func scan(iface *net.Interface, wg *sync.WaitGroup, db *sql.DB) error {
+func scan(iface *net.Interface, wg *sync.WaitGroup, db *sql.DB, mutex *sync.Mutex) error {
 	// We just look for IPv4 addresses, so try to find if the interface has one.
 	var addr *net.IPNet
 	if addrs, err := iface.Addrs(); err != nil {
@@ -118,7 +119,7 @@ func scan(iface *net.Interface, wg *sync.WaitGroup, db *sql.DB) error {
 
 	// Start up a goroutine to read in packet data.
 	stop := make(chan struct{})
-	go readARP(handle, iface, stop, db)
+	go readARP(handle, iface, stop, db, mutex)
 	defer close(stop)
 
 	// Write our scan packets out to the handle.
@@ -138,7 +139,7 @@ func scan(iface *net.Interface, wg *sync.WaitGroup, db *sql.DB) error {
 // readARP watches a handle for incoming ARP responses we might care about, and prints them.
 //
 // readARP loops until 'stop' is closed.
-func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}, db *sql.DB) {
+func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}, db *sql.DB, mutex *sync.Mutex) {
 	src := gopacket.NewPacketSource(handle, layers.LayerTypeEthernet)
 	in := src.Packets()
 
@@ -163,6 +164,7 @@ func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}, db *
 			// log.Printf("IP %v is at %v", net.IP(arp.SourceProtAddress), net.HardwareAddr(arp.SourceHwAddress))
 			// fmt.Fprintf(w, "%v\t%v\t%v\tON\n", net.IP(arp.SourceProtAddress), net.IP(arp.SourceProtAddress),
 			//	net.HardwareAddr(arp.SourceHwAddress))
+			mutex.Lock()
 			tx, err := db.Begin()
 			if err != nil {
 				log.Fatal(err)
@@ -187,6 +189,7 @@ func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}, db *
 				log.Fatal(err)
 			}
 			tx.Commit()
+			mutex.Unlock()
 		}
 	}
 }
@@ -225,7 +228,7 @@ func writeARP(handle *pcap.Handle, iface *net.Interface, addr *net.IPNet) error 
 		if err := handle.WritePacketData(buf.Bytes()); err != nil {
 			return err
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 	return nil
 }
