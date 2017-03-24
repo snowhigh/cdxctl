@@ -25,15 +25,19 @@ var listDeviceCommand = &cobra.Command{
 			log.Fatal(err)
 		}
 		defer db.Close()
-		sqlStmt := `create table if not exists node(
-			if_name varchar(50),
+		sqlStmt := `create table if not exists device(
+			if_name varchar(40),
 			vlan_id integer default 0,
-			ipv4 varchar(50),
+			ipv4 varchar(40),
 			ipv4b bolb,
-			mac varchar(50),
-			hostname varchar(50),
-			vendor varchar(200),
-			state varchar(10),
+			mac varchar(40),
+			hostname varchar(40) default '',
+			vendor varchar(200) default '',
+			distri varchar(40) default '',
+			distri_ver varchar(40) default '',
+			user varchar(40) default '',
+			pass varchar(40) default '',
+			state varchar(8) default '',
 			last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			unique(vlan_id, ipv4, mac) on conflict replace
 		);`
@@ -46,7 +50,7 @@ var listDeviceCommand = &cobra.Command{
 		w := tabwriter.NewWriter(os.Stdout, 5, 0, 2, ' ', 0)
 		fmt.Fprintln(w, "IP\tMAC\tSTATE\tVENDOR")
 
-		rows, err := db.Query("select ipv4, mac, vendor, state from node order by ipv4b asc")
+		rows, err := db.Query("select ipv4, mac, vendor, state from device order by ipv4b asc")
 		if err != nil {
 			log.Fatal(err)
 		}

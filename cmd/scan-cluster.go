@@ -27,9 +27,9 @@ var scanClusterCommand = &cobra.Command{
 			log.Fatal(err)
 		}
 		defer db.Close()
-		sqlStmt := `create table if not exists cluster(
+		sqlStmt := `create table if not exists cluster_member(
 			vlan_id integer default 0,
-			ipv4 varchar(50),
+			ipv4 varchar(40),
 			hostname varchar(100),
 			cluster varchar(100),
 			last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -41,6 +41,17 @@ var scanClusterCommand = &cobra.Command{
 			return err
 		}
 
+		sqlStmt = `create table if not exists cluster(
+			cluster varchar(100),
+			version varchar(40),
+			last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			unique(cluster) on conflict replace
+		);`
+		_, err = db.Exec(sqlStmt)
+		if err != nil {
+			log.Printf("%q: %s\n", err, sqlStmt)
+			return err
+		}
 		scanCluster(db)
 		log.Printf("Done")
 		return nil
@@ -73,25 +84,44 @@ func scanCluster(db *sql.DB) {
 	for {
 		select {
 		case e := <-results:
-			// fmt.Printf("%s %s:%d %s %s\n", e.HostName, e.AddrIPv4, e.Port, e.Text, e.ServiceInstanceName())
-			tx, err := db.Begin()
-			if err != nil {
-				log.Fatal(err)
-			}
-			stmt, err := tx.Prepare("insert or replace into cluster(vlan_id, ipv4, hostname, cluster) values(?,?,?,?)")
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer stmt.Close()
-			clusterID := "Unknown"
+			var hostname string
+			var ipv4 string
+			var clusterID string
+			clusterID = "Unknown"
 			for _, b := range e.Text {
 				if strings.Contains(b, "clusterID") {
 					clusterID = strings.Split(b, "=")[1]
 				}
 			}
-			hostname := strings.Split(e.HostName, ".")[0]
-			ipv4 := fmt.Sprintf("%s", e.AddrIPv4)
+			hostname = strings.Split(e.HostName, ".")[0]
+			ipv4 = fmt.Sprintf("%s", e.AddrIPv4)
+			// fmt.Printf("%s %s:%d %s %s\n", e.HostName, e.AddrIPv4, e.Port, e.Text, e.ServiceInstanceName())
+			// cluster member
+			tx, err := db.Begin()
+			if err != nil {
+				log.Fatal(err)
+			}
+			stmt, err := tx.Prepare("insert or replace into cluster_member(vlan_id, ipv4, hostname, cluster) values(?,?,?,?)")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer stmt.Close()
 			_, err = stmt.Exec(0, ipv4, hostname, clusterID)
+			if err != nil {
+				log.Fatal(err)
+			}
+			tx.Commit()
+			// cluster
+			tx, err = db.Begin()
+			if err != nil {
+				log.Fatal(err)
+			}
+			stmt, err = tx.Prepare("insert or replace into cluster(cluster, version) values(?,?)")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer stmt.Close()
+			_, err = stmt.Exec(clusterID, "Unknown")
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -101,4 +131,3 @@ func scanCluster(db *sql.DB) {
 		}
 	}
 }
-
