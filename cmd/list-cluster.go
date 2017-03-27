@@ -25,7 +25,7 @@ var listClusterCommand = &cobra.Command{
 			log.Fatal(err)
 		}
 		defer db.Close()
-		sqlStmt := `create table if not exists cluster(
+		sqlStmt := `create table if not exists cluster_member(
 			vlan_id integer default 0,
 			ipv4 varchar(40),
 			hostname varchar(100),
@@ -50,7 +50,6 @@ var listClusterCommand = &cobra.Command{
 			log.Printf("%q: %s\n", err, sqlStmt)
 			return err
 		}
-
 		// Print output
 		w := tabwriter.NewWriter(os.Stdout, 5, 0, 2, ' ', 0)
 		fmt.Fprintln(w, "CLUSTER\tVERSION\tNODES")

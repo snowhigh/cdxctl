@@ -19,7 +19,7 @@ var joinClusterCommand = &cobra.Command{
         Use:   "join-cluster CLUSTER IP",
         Short: "add device into cluster",
         RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
+		if len(args) < 2 {
 			return cmd.Help()
 		}
 		if len(args) > 2 {
@@ -33,16 +33,6 @@ var joinClusterCommand = &cobra.Command{
 			log.Fatal(err)
 		}
 		defer db.Close()
-		sqlStmt := `create table if not exists actions(
-			action varchar(40),
-			cluster varchar(40),
-			device varchar(40)
-		);`
-		_, err = db.Exec(sqlStmt)
-		if err != nil {
-			log.Printf("%q: %s\n", err, sqlStmt)
-			return err
-		}
 
 		joinCluster(db, clusterID, nodeIP)
 		log.Printf("Done")
