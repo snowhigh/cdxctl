@@ -1,23 +1,23 @@
 package cmd
 
 import (
-	"fmt"
-        "bytes"
-        "encoding/binary"
-        "errors"
-        "log"
-        "net"
-        "sync"
-        "time"
+	"bytes"
 	"database/sql"
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"log"
 	"math/rand"
+	"net"
+	"sync"
+	"time"
 
-	lmf "github.com/snowhigh/libmacouflage"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcap"
 	_ "github.com/mattn/go-sqlite3"
+	lmf "github.com/snowhigh/libmacouflage"
 	"github.com/spf13/cobra"
-        "github.com/google/gopacket"
-        "github.com/google/gopacket/layers"
-        "github.com/google/gopacket/pcap"
 )
 
 func init() {
@@ -25,9 +25,9 @@ func init() {
 }
 
 var scanDeviceCommand = &cobra.Command{
-        Use:   "scan-device",
-        Short: "scan for network devices",
-        RunE: func(cmd *cobra.Command, args []string) error {
+	Use:   "scan-device",
+	Short: "scan for network devices",
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// Get a list of all interfaces.
 		ifaces, err := net.Interfaces()
 		if err != nil {
@@ -79,7 +79,7 @@ var scanDeviceCommand = &cobra.Command{
 		wg.Wait()
 		log.Printf("Done")
 		return nil
-        },
+	},
 }
 
 // scan scans an individual interface's local network for machines using ARP requests/replies.
@@ -188,7 +188,7 @@ func readARP(handle *pcap.Handle, iface *net.Interface, stop chan struct{}, db *
 			// vendor := strings.Replace(newMacVendor.Vendor, "'", "''", -1)
 			vendor := newMacVendor.Vendor
 			ip := fmt.Sprintf("%v", net.IP(arp.SourceProtAddress))
-			_, err = stmt.Exec(iface.Name, 0, ip, net.IP(arp.SourceProtAddress), mac , "", vendor, "on")
+			_, err = stmt.Exec(iface.Name, 0, ip, net.IP(arp.SourceProtAddress), mac, "", vendor, "on")
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -224,7 +224,7 @@ func writeARP(handle *pcap.Handle, iface *net.Interface, addr *net.IPNet) error 
 		ComputeChecksums: true,
 	}
 	// Send one packet for every address.
-        addr_list := ips(addr)
+	addr_list := ips(addr)
 	shuffle(addr_list)
 	for _, ip := range addr_list {
 		arp.DstProtAddress = []byte(ip)
@@ -237,11 +237,11 @@ func writeARP(handle *pcap.Handle, iface *net.Interface, addr *net.IPNet) error 
 	return nil
 }
 
-func shuffle(n []net.IP){
-    for i, _ := range n {
-        j := rand.Intn(i + 1)
-        n[i], n[j] = n[j], n[i]
-    }
+func shuffle(n []net.IP) {
+	for i, _ := range n {
+		j := rand.Intn(i + 1)
+		n[i], n[j] = n[j], n[i]
+	}
 }
 
 // ips is a simple and not very good method for getting all IPv4 addresses from a
