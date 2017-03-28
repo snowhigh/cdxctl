@@ -57,9 +57,9 @@ func joinCluster(db *sql.DB, clusterID string, nodeIP string) {
 		}
 	}
 	os.Chdir("provision")
-	cmd := exec.Command("/bin/bash", "sshkey-install.sh")
+	cmd := exec.Command("/bin/bash", "qts-qes-switcher.sh")
 	env := os.Environ()
-	env = append(env, fmt.Sprintf("HOST=%s", nodeIP))
+	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
 	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()
@@ -91,6 +91,17 @@ func joinCluster(db *sql.DB, clusterID string, nodeIP string) {
 
 	// HOST_IP_LIST="$HOSTS" bash -x cdxvirt-coreos-install.sh
 	cmd = exec.Command("/bin/bash", "cdxvirt-coreos-install.sh")
+	env = os.Environ()
+	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
+	cmd.Env = env
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// HOST_IP_LIST="$HOSTS" bash upload-preinit-scripts.sh
+	cmd = exec.Command("/bin/bash", "upload-preinit-scripts.sh")
 	env = os.Environ()
 	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
 	cmd.Env = env
