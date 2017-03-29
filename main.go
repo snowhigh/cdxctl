@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"cdxctl/cmd"
+	"github.com/snowhigh/cdxctl/cmd"
 )
 
 func main() {
