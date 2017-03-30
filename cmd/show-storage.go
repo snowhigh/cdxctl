@@ -89,7 +89,7 @@ var showStorageCommand = &cobra.Command{
 			var OSD int
 			var DISK int
 			for k := range data.Nodes[0].Hwslot {
-				if data.Nodes[0].Hwslot[k].OsdID != "DOM" {
+				if data.Nodes[0].Hwslot[k].Slot != "DOM" {
 					if data.Nodes[0].Hwslot[k].OsdID != "" {
 						OSD++
 					}
