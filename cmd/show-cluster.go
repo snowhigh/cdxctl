@@ -14,7 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Verbose bool
+
 func init() {
+	showClusterCommand.Flags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
 	RootCmd.AddCommand(showClusterCommand)
 }
 
@@ -98,26 +101,20 @@ func showCluster(db *sql.DB, clusterID string) {
 
 func gather_info(ips []string, w *tabwriter.Writer) {
 	var hostname, ipv4, num_nic, cores, mem, distri, distri_version string
-	f, err := os.Create("/tmp/hosts")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	f.WriteString("[all]\n")
+	var iplist string
 	for _, ip := range ips {
-		f.WriteString(ip+"\n")
+		iplist = iplist + " " + ip
 	}
-	f.WriteString("[all:vars]\n")
-	f.WriteString("ansible_ssh_user=core\n")
-	f.WriteString("ansible_python_interpreter=\"/home/core/bin/python\"\n")
-	f.WriteString("ansible_ssh_extra_args=\"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null\"\n")
-	f.Sync()
 
-	os.Chdir("provision/playbooks")
-	cmd := exec.Command("ansible-playbook", "-i", "/tmp/hosts", "gather-info.yml")
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
-	// _, err = exec.Command("ansible-playbook", "-i", "/tmp/hosts", "gather-info.yml").Output()
+	os.Chdir("provision/")
+        cmd := exec.Command("/bin/bash", "gather-info.sh")
+        env := os.Environ()
+        env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", iplist))
+        cmd.Env = env
+	if Verbose {
+		cmd.Stdout = os.Stdout
+	}
+	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
