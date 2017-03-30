@@ -41,28 +41,13 @@ var joinClusterCommand = &cobra.Command{
 }
 
 func joinCluster(db *sql.DB, clusterID string, nodeIP string) {
-	var vlan_id string
-	var ipv4 string
-	var mac string
-
-	rows, err := db.Query(fmt.Sprintf("select vlan_id, ipv4, mac from device where ipv4='%s'", nodeIP))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.Scan(&vlan_id, &ipv4, &mac)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
 	os.Chdir("provision")
 	cmd := exec.Command("/bin/bash", "qts-qes-switcher.sh")
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
 	cmd.Env = env
 	cmd.Stdout = os.Stdout
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -114,7 +114,10 @@ func gather_info(ips []string, w *tabwriter.Writer) {
 	f.Sync()
 
 	os.Chdir("provision/playbooks")
-	_, err = exec.Command("ansible-playbook", "-i", "/tmp/hosts", "gather-info.yml").Output()
+	cmd := exec.Command("ansible-playbook", "-i", "/tmp/hosts", "gather-info.yml")
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	// _, err = exec.Command("ansible-playbook", "-i", "/tmp/hosts", "gather-info.yml").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
