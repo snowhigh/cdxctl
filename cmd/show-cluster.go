@@ -109,6 +109,7 @@ func showCluster(db *sql.DB, clusterID string) {
 		hosts = append(hosts, ipv4)
 	}
 	// call ansible gather-info
+	fmt.Printf("get info from hosts: %s\n", hosts)
 	gather_info(hosts, w)
 	w.Flush()
 }

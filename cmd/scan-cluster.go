@@ -3,14 +3,14 @@ package cmd
 import (
 	"fmt"
         "log"
-	"os"
-        "time"
+	"time"
 	"database/sql"
 	"strings"
+	"context"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/oleksandr/bonjour"
 	"github.com/spf13/cobra"
+	"github.com/grandcat/zeroconf"
 )
 
 func init() {
@@ -59,42 +59,25 @@ var scanClusterCommand = &cobra.Command{
 }
 
 func scanCluster(db *sql.DB) {
-	resolver, err := bonjour.NewResolver(nil)
+	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
-		log.Println("Failed to initialize resolver:", err.Error())
-		os.Exit(1)
+		log.Fatalln("Failed to initialize resolver:", err.Error())
 	}
 
-	results := make(chan *bonjour.ServiceEntry)
-
-	// Send the "stop browsing" signal after the desired timeout
-	timeout := time.Duration(5 * time.Second)
-	exitCh := make(chan bool)
-	go func() {
-		time.Sleep(timeout)
-		go func() { resolver.Exit <- true }()
-		go func() { exitCh <- true }()
-	}()
-
-	err = resolver.Browse("_etcd._tcp", "local.", results)
-	if err != nil {
-		log.Println("Failed to browse:", err.Error())
-	}
-
-	for {
-		select {
-		case e := <-results:
+	entries := make(chan *zeroconf.ServiceEntry)
+	go func(results <-chan *zeroconf.ServiceEntry) {
+		for entry := range results {
 			var hostname string
 			var ipv4 string
 			var clusterID string
 			clusterID = "Unknown"
-			for _, b := range e.Text {
+			for _, b := range entry.Text {
 				if strings.Contains(b, "clusterID") {
 					clusterID = strings.Split(b, "=")[1]
 				}
 			}
-			hostname = strings.Split(e.HostName, ".")[0]
-			ipv4 = fmt.Sprintf("%s", e.AddrIPv4)
+			hostname = strings.Split(entry.HostName, ".")[0]
+			ipv4 = fmt.Sprintf("%s", entry.AddrIPv4[0])
 			// fmt.Printf("%s %s:%d %s %s\n", e.HostName, e.AddrIPv4, e.Port, e.Text, e.ServiceInstanceName())
 			// cluster member
 			tx, err := db.Begin()
@@ -126,8 +109,17 @@ func scanCluster(db *sql.DB) {
 				log.Fatal(err)
 			}
 			tx.Commit()
-		case <-exitCh:
-			return
 		}
+	}(entries)
+	// Send the "stop browsing" signal after the desired timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	err = resolver.Browse(ctx, "_etcd._tcp", "local", entries)
+	if err != nil {
+		log.Fatalln("Failed to browse:", err.Error())
 	}
+
+	<-ctx.Done()
+	// Wait some additional time to see debug messages on go routine shutdown.
+	time.Sleep(5 * time.Second)
 }
