@@ -9,10 +9,24 @@ import (
 	"os/exec"
 	"strings"
 	"io/ioutil"
+	"encoding/json"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 )
+
+type Facts struct {
+	Fact struct {
+		Hostname string `json:"ansible_hostname"`
+		Memory int `json:"ansible_memtotal_mb"`
+		DefaultIpv4 struct {
+			Address string `json:"address"`
+		} `json:"ansible_default_ipv4"`
+		Distri string `json:"ansible_distribution"`
+		DistriVersion string `json:"ansible_distribution_version"`
+		Cores int `json:"ansible_processor_cores"`
+	} `json:"ansible_facts"`
+}
 
 var Verbose bool
 
@@ -100,7 +114,8 @@ func showCluster(db *sql.DB, clusterID string) {
 }
 
 func gather_info(ips []string, w *tabwriter.Writer) {
-	var hostname, ipv4, num_nic, cores, mem, distri, distri_version string
+	var hostname, ipv4, num_nic, distri, distri_version string
+	var cores, mem int
 	var iplist string
 	for _, ip := range ips {
 		iplist = iplist + " " + ip
@@ -119,42 +134,23 @@ func gather_info(ips []string, w *tabwriter.Writer) {
 		log.Fatal(err)
 	}
 	for _, ip := range ips {
-		dat, err := ioutil.ReadFile(fmt.Sprintf("/tmp/%s_ansible_nodename", ip))
+		dat, err := ioutil.ReadFile(fmt.Sprintf("/tmp/facts/%s", ip))
 		if err != nil {
 			log.Fatal(err)
 		}
-		hostname = string(dat)
-		dat, err = ioutil.ReadFile(fmt.Sprintf("/tmp/%s_ansible_default_ipv4", ip))
+		facts := Facts{}
+		err = json.Unmarshal(dat, &facts)
 		if err != nil {
 			log.Fatal(err)
 		}
-		ipv4 = string(dat)
-		dat, err = ioutil.ReadFile(fmt.Sprintf("/tmp/%s_ansible_distribution", ip))
-		if err != nil {
-			log.Fatal(err)
-		}
-		distri = string(dat)
-		dat, err = ioutil.ReadFile(fmt.Sprintf("/tmp/%s_ansible_distribution_version", ip))
-		if err != nil {
-			log.Fatal(err)
-		}
-		distri_version = string(dat)
-		dat, err = ioutil.ReadFile(fmt.Sprintf("/tmp/%s_ansible_memtotal_mb", ip))
-		if err != nil {
-			log.Fatal(err)
-		}
-		mem = string(dat)
-		dat, err = ioutil.ReadFile(fmt.Sprintf("/tmp/%s_ansible_processor_cores", ip))
-		if err != nil {
-			log.Fatal(err)
-		}
-		cores = string(dat)
-		dat, err = ioutil.ReadFile(fmt.Sprintf("/tmp/%s_num_nic", ip))
-		if err != nil {
-			log.Fatal(err)
-		}
-		num_nic = string(dat)
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", hostname, ipv4, distri,
+		hostname = facts.Fact.Hostname
+		ipv4 = facts.Fact.DefaultIpv4.Address
+		distri = facts.Fact.Distri
+		distri_version = facts.Fact.DistriVersion
+		cores = facts.Fact.Cores
+		mem = facts.Fact.Memory
+
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%d\t%s\n", hostname, ipv4, distri,
 		distri_version, cores, mem, strings.Replace(num_nic, "\n", ",", -1))
 	}
 }
