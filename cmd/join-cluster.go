@@ -42,6 +42,7 @@ var joinClusterCommand = &cobra.Command{
 
 func joinCluster(db *sql.DB, clusterID string, nodeIP string) {
 	os.Chdir("provision")
+	// HOST_IP_LIST="$HOSTS" bash qts-qes-switcher.sh
 	cmd := exec.Command("/bin/bash", "qts-qes-switcher.sh")
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
@@ -52,21 +53,11 @@ func joinCluster(db *sql.DB, clusterID string, nodeIP string) {
 		log.Fatal(err)
 	}
 
-	// HOST_IP_LIST="$HOSTS" bash -x qts-ipxe-install.sh
-	cmd = exec.Command("/bin/bash", "qts-ipxe-install.sh")
+	// HOST_IP_LIST="$HOSTS" OPTS="--install --cd --reboot" bash dom-modifier.sh
+	cmd = exec.Command("/bin/bash", "dom-modifier.sh")
 	env = os.Environ()
 	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
-	cmd.Env = env
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// HOST_IP_LIST="$HOSTS" bash grub-update-reboot.sh CDRamfs
-	cmd = exec.Command("/bin/bash", "grub-update-reboot.sh", "CDRamfs")
-	env = os.Environ()
-	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
+	env = append(env, fmt.Sprintf("OPTS=--install --cd --reboot"))
 	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()
@@ -87,6 +78,17 @@ func joinCluster(db *sql.DB, clusterID string, nodeIP string) {
 
 	// HOST_IP_LIST="$HOSTS" bash upload-preinit-scripts.sh
 	cmd = exec.Command("/bin/bash", "upload-preinit-scripts.sh")
+	env = os.Environ()
+	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
+	cmd.Env = env
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// HOST_IP_LIST="$HOSTS" bash pull-all-img.sh
+	cmd = exec.Command("/bin/bash", "pull-all-img.sh")
 	env = os.Environ()
 	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
 	cmd.Env = env

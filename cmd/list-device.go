@@ -17,7 +17,7 @@ func init() {
 
 var listDeviceCommand = &cobra.Command{
         Use:   "list-device",
-        Short: "list network devices",
+        Short: "list devices",
         RunE: func(cmd *cobra.Command, args []string) error {
 		// Open db for read/write scan result
 		db, err := sql.Open("sqlite3", "/tmp/cdxctl.db")
