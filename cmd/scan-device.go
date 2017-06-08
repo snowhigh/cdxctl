@@ -16,7 +16,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	_ "github.com/mattn/go-sqlite3"
-	lmf "github.com/snowhigh/libmacouflage"
+	lmf "github.com/simonschuang/libmacouflage"
 	"github.com/spf13/cobra"
 )
 
