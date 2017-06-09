@@ -25,10 +25,10 @@ type NodeFacts struct {
 	} `json:"ansible_facts"`
 }
 
-var Verbose bool
+var nodeShowVerbose bool
 
 func init() {
-	nodeShowCommand.Flags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
+	nodeShowCommand.Flags().BoolVarP(&nodeShowVerbose, "verbose", "v", false, "verbose output")
 	RootCmd.AddCommand(nodeShowCommand)
 }
 
@@ -56,7 +56,7 @@ func nodeShow(nodeIP string) {
         env := os.Environ()
         env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
         cmd.Env = env
-	if Verbose {
+	if nodeShowVerbose {
 		cmd.Stdout = os.Stdout
         	cmd.Stderr = os.Stderr
 	}
