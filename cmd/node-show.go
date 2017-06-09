@@ -25,12 +25,15 @@ type NodeFacts struct {
 	} `json:"ansible_facts"`
 }
 
+var Verbose bool
+
 func init() {
+	nodeShowCommand.Flags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
 	RootCmd.AddCommand(nodeShowCommand)
 }
 
 var nodeShowCommand = &cobra.Command{
-        Use:   "Show node info",
+        Use:   "node-show",
         Short: "show node information",
         RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
@@ -53,7 +56,10 @@ func nodeShow(nodeIP string) {
         env := os.Environ()
         env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
         cmd.Env = env
-	cmd.Stdout = os.Stdout
+	if Verbose {
+		cmd.Stdout = os.Stdout
+        	cmd.Stderr = os.Stderr
+	}
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -68,5 +74,6 @@ func nodeShow(nodeIP string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%s\n", facts)
+	b, _ := json.Marshal(facts)
+	fmt.Println(string(b))
 }
