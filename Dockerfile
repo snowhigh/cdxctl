@@ -5,6 +5,6 @@ RUN go get -v github.com/google/gopacket
 RUN go get -v github.com/simonschuang/cdxctl
 
 RUN pip install --upgrade cffi
-RUN pip install ansible
+RUN pip install ansible ansible-cmdb
 
 CMD ["/bin/sleep", "infinity"]
