@@ -14,20 +14,25 @@ import (
 
 type NodeFacts struct {
 	Fact struct {
+		Distri string `json:"ansible_distribution"`
+		DistriVersion string `json:"ansible_distribution_version"`
 		Hostname string `json:"ansible_hostname"`
+		Cores int `json:"ansible_processor_cores"`
 		Memory int `json:"ansible_memtotal_mb"`
 		DefaultIpv4 struct {
 			Address string `json:"address"`
+                        Interface string `json:"interface"`
+			Gateway string `json:"gateway"`
 		} `json:"ansible_default_ipv4"`
-		Distri string `json:"ansible_distribution"`
-		DistriVersion string `json:"ansible_distribution_version"`
-		Cores int `json:"ansible_processor_cores"`
+		Interfaces []interface{} `json:"ansible_interfaces"`
 	} `json:"ansible_facts"`
 }
 
+var nodeShowIp string
 var nodeShowVerbose bool
 
 func init() {
+	nodeShowCommand.Flags().StringVarP(&nodeShowIp, "ip", "i", "", "Node IP address")
 	nodeShowCommand.Flags().BoolVarP(&nodeShowVerbose, "verbose", "v", false, "verbose output")
 	RootCmd.AddCommand(nodeShowCommand)
 }
@@ -36,14 +41,10 @@ var nodeShowCommand = &cobra.Command{
         Use:   "node-show",
         Short: "show node information",
         RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
+		if nodeShowIp == "" {
 			return cmd.Help()
 		}
-		if len(args) > 1 {
-			return fmt.Errorf("Only one IP can be added at a time")
-		}
-		nodeIP := args[0]
-
+		nodeIP := nodeShowIp
 		nodeShow(nodeIP)
 		log.Printf("Done")
 		return nil
@@ -74,6 +75,6 @@ func nodeShow(nodeIP string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	b, _ := json.Marshal(facts)
+	b, _ := json.MarshalIndent(facts, "", "\t")
 	fmt.Println(string(b))
 }
