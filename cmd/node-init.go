@@ -34,7 +34,7 @@ var nodeInitCommand = &cobra.Command{
 }
 
 func nodeInit(nodeIP string) {
-	os.Chdir("provision/")
+	os.Chdir("/root/provision/")
 
 	// HOST_IP_LIST="$HOSTS" bash qts-qes-switcher.sh
 	cmd := exec.Command("/bin/bash", "qts-qes-switcher.sh")

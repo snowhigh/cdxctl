@@ -38,7 +38,7 @@ var clusterJoinCommand = &cobra.Command{
 }
 
 func clusterJoin(clusterID string, nodeIP string, network string) {
-	os.Chdir("provision")
+	os.Chdir("/root/provision")
 	// HOST_IP_LIST="$HOSTS" bash upload-preinit-scripts.sh
 	cmd := exec.Command("/bin/bash", "upload-preinit-scripts.sh")
 	env := os.Environ()

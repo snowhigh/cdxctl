@@ -52,7 +52,7 @@ var nodeShowCommand = &cobra.Command{
 }
 
 func nodeShow(nodeIP string) {
-	os.Chdir("provision/")
+	os.Chdir("/root/provision/")
         cmd := exec.Command("/bin/bash", "gather-info.sh")
         env := os.Environ()
         env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))

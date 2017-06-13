@@ -53,7 +53,7 @@ var nodeSetBondCommand = &cobra.Command{
 }
 
 func nodeSetBond(nodeIP string, name string, nic1 string, nic2 string, network string) {
-	os.Chdir("provision/")
+	os.Chdir("/root/provision/")
 	cmd := exec.Command("/bin/bash", "set-bond.sh")
         env := os.Environ()
         env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
