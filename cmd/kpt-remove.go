@@ -18,7 +18,7 @@ func init() {
 
 var kptRemoveCommand = &cobra.Command{
         Use:   "kpt-remove",
-        Short: "Kubernetes package tool, install packages",
+        Short: "Kubernetes package tool, remove packages",
         RunE: func(cmd *cobra.Command, args []string) error {
 		os.Chdir("/root/fullstack/cdxvirt")
 		if kptRemoveName == "" {
