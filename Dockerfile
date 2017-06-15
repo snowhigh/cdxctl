@@ -7,4 +7,7 @@ RUN go get -v github.com/simonschuang/cdxctl
 RUN pip install --upgrade cffi
 RUN pip install ansible ansible-cmdb
 
+RUN mkdir -p /etc/ansible
+ADD ansible.cfg /etc/ansible/ansible.cfg
+
 CMD ["/bin/sleep", "infinity"]

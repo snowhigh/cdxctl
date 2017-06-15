@@ -3,6 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"log"
+	"os/exec"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -78,4 +81,18 @@ var RootCmd = &cobra.Command{
 	Short:         "cdxvirt platfrom CLI",
 	SilenceUsage:  true,
 	SilenceErrors: true,
+}
+
+func runCommand(tmp_cmd string, interactive bool) {
+	split_cmd := strings.Split(tmp_cmd, " ")
+        cmd := exec.Command(split_cmd[0], split_cmd[1:]...)
+	if interactive {
+		cmd.Stdin = os.Stdin
+	}
+        cmd.Stderr = os.Stderr
+        cmd.Stdout = os.Stdout
+        err := cmd.Run()
+        if err != nil {
+                log.Fatal(err)
+        }
 }
