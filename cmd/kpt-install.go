@@ -37,7 +37,7 @@ var kptInstallCommand = &cobra.Command{
 			tmp_cmd = fmt.Sprintf("ansible-playbook /root/fullstack/cdxvirt/%s/ansible/upload.yml", kptInstallName)
 			runCommand(tmp_cmd, kptInstallInteractive)
 		}
-		tmp_cmd = fmt.Sprintf("ansible-playbook /root/fullstack/cdxvirt/%s/ansible/install.yml", kptInstallName)
+		tmp_cmd = fmt.Sprintf("ansible-playbook /root/fullstack/cdxvirt/%s/ansible/install.yml --limit all[0]", kptInstallName)
 		runCommand(tmp_cmd, kptInstallInteractive)
 		return nil
         },

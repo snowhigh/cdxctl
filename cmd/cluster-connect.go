@@ -56,4 +56,7 @@ func clusterConnect(nodeIP string) {
 	f.WriteString("ansible_port=2222\n")
 	f.WriteString("ansible_ssh_pass=!Q@W3e4r\n")
 	f.Sync()
+
+	// Dump hosts file
+	runCommand("cat /etc/ansible/hosts", false)
 }

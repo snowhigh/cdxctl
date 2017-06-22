@@ -28,7 +28,7 @@ var kptRemoveCommand = &cobra.Command{
 			log.Fatal(err)
 		}
 		
-		tmp_cmd := fmt.Sprintf("ansible-playbook /root/fullstack/cdxvirt/%s/ansible/uninstall.yml", kptRemoveName)
+		tmp_cmd := fmt.Sprintf("ansible-playbook /root/fullstack/cdxvirt/%s/ansible/uninstall.yml --limit all[0]", kptRemoveName)
 		runCommand(tmp_cmd, true)
 		return nil
         },
