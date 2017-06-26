@@ -78,4 +78,16 @@ func clusterJoin(clusterID string, nodeIP string, network string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// change docker to flannel network
+	cmd = exec.Command("/bin/bash", "docker-flannel.sh")
+	env = os.Environ()
+	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
+	cmd.Env = env
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

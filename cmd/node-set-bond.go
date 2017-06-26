@@ -15,12 +15,14 @@ var nodeSetBondIp string
 var nodeSetBondName string
 var nodeSetBondNics string
 var nodeSetBondNetwork string
+var nodeSetBondMtu string
 
 func init() {
 	nodeSetBondCommand.Flags().StringVarP(&nodeSetBondIp, "ip", "i", "", "Node IP address")
 	nodeSetBondCommand.Flags().StringVarP(&nodeSetBondName, "name", "n", "", "Node Bond dev name")
 	nodeSetBondCommand.Flags().StringVarP(&nodeSetBondNics, "nics", "f", "", "Node NIC names ex. eth0,eth1")
 	nodeSetBondCommand.Flags().StringVarP(&nodeSetBondNetwork, "net", "w", "", "Bond NIC network ex. 172.18.0.47/16")
+	nodeSetBondCommand.Flags().StringVarP(&nodeSetBondMtu, "mtu", "m", "", "Bond NIC mtu size ex. 9000")
 	RootCmd.AddCommand(nodeSetBondCommand)
 }
 
@@ -31,6 +33,9 @@ var nodeSetBondCommand = &cobra.Command{
 		var nic1, nic2 string
 		if nodeSetBondIp == "" || nodeSetBondName == "" || nodeSetBondNics == "" {
 			return cmd.Help()
+		}
+		if nodeSetBondMtu == "" {
+			nodeSetBondMtu = "1500"
 		}
 		nodeIP := nodeSetBondIp
 		name := nodeSetBondName
@@ -46,13 +51,13 @@ var nodeSetBondCommand = &cobra.Command{
 		fmt.Sprintf("nic1: %s\n", nic1)
 		fmt.Sprintf("nic2: %s\n", nic2)
 
-		nodeSetBond(nodeIP, name, nic1, nic2, network)
+		nodeSetBond(nodeIP, name, nic1, nic2, network, nodeSetBondMtu)
 		log.Printf("Done")
 		return nil
         },
 }
 
-func nodeSetBond(nodeIP string, name string, nic1 string, nic2 string, network string) {
+func nodeSetBond(nodeIP string, name string, nic1 string, nic2 string, network string, mtu string) {
 	os.Chdir("/root/provision/")
 	cmd := exec.Command("/bin/bash", "set-bond.sh")
         env := os.Environ()
@@ -60,6 +65,7 @@ func nodeSetBond(nodeIP string, name string, nic1 string, nic2 string, network s
 	env = append(env, fmt.Sprintf("BONDDEV=%s", name))
 	env = append(env, fmt.Sprintf("BONDNIC1=%s", nic1))
 	env = append(env, fmt.Sprintf("BONDNIC2=%s", nic2))
+	env = append(env, fmt.Sprintf("MTU=%s", mtu))
 	if network != "" {
 		env = append(env, fmt.Sprintf("BONDNET=%s", network))
 	}
