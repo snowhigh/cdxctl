@@ -57,6 +57,9 @@ func clusterConnect(nodeIP string) {
 	f.WriteString("ansible_ssh_pass=!Q@W3e4r\n")
 	f.Sync()
 
+        fmt.Println("")
+        fmt.Println("!!! modify /etc/ansible/hosts if needed !!!")
 	// Dump hosts file
 	runCommand("cat /etc/ansible/hosts", false)
+        fmt.Println("")
 }
