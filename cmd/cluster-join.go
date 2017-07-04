@@ -13,11 +13,13 @@ import (
 var clusterJoinIp string
 var clusterJoinName string
 var clusterJoinNetwork string
+var clusterJoinOpts string
 
 func init() {
 	clusterJoinCommand.Flags().StringVarP(&clusterJoinIp, "ip", "i", "", "Node IP address")
 	clusterJoinCommand.Flags().StringVarP(&clusterJoinName, "name", "n", "", "Cluster name")
 	clusterJoinCommand.Flags().StringVarP(&clusterJoinNetwork, "net", "w", "", "Cluster network ex. 192.168.32.0/23")
+	clusterJoinCommand.Flags().StringVarP(&clusterJoinOpts, "opt", "o", "", "k8sup options ex. --debug")
 	RootCmd.AddCommand(clusterJoinCommand)
 }
 
@@ -71,18 +73,9 @@ func clusterJoin(clusterID string, nodeIP string, network string) {
 	if ( network != "" ) {
 		env = append(env, fmt.Sprintf("NETWORK=%s", network))
 	}
-	cmd.Env = env
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		log.Fatal(err)
+	if ( clusterJoinOpts != "" ) {
+		env = append(env, fmt.Sprintf("K8SUP_OPTS='%s'", clusterJoinOpts))
 	}
-
-	// change docker to flannel network
-	cmd = exec.Command("/bin/bash", "docker-flannel.sh")
-	env = os.Environ()
-	env = append(env, fmt.Sprintf("HOST_IP_LIST=%s", nodeIP))
 	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
