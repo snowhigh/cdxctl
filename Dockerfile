@@ -15,4 +15,6 @@ RUN wget https://storage.googleapis.com/kubernetes-release/release/v1.5.7/bin/li
 RUN mkdir -p /etc/ansible
 ADD ansible.cfg /etc/ansible/ansible.cfg
 
+WORKDIR /root
+
 CMD ["/bin/sleep", "infinity"]
