@@ -1,7 +1,7 @@
 FROM golang:1.8
 
 RUN wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add - && \
-    deb http://download.ceph.com/debian-hammer/ jessie main && \
+    echo deb http://download.ceph.com/debian-hammer/ jessie main | tee /etc/sources.list.d/ceph.list 
 
 RUN apt-get update && apt-get install -y libpcap-dev python-netaddr sshpass python-pip python-dev build-essential libssl-dev libffi-dev jq vim nginx net-tools ceph-common
 RUN go get -v github.com/google/gopacket
