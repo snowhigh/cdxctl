@@ -71,7 +71,7 @@ var showStorageCommand = &cobra.Command{
 			}
 
 			client := &http.Client{}
-			resp, err := client.Get("http://" + ip + ":30001/api/v1/storage/node/" + ip)
+			resp, err := client.Get("http://" + ip + ":8800/api/v1/storage/node/" + ip)
 			if err != nil {
 				log.Fatal(err)
 			}
